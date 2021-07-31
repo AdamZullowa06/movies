@@ -61,36 +61,31 @@
 const searchButton = document.querySelector('.search-button');
 
 searchButton.addEventListener('click', async function() {
-    const inputKeyword = document.querySelector('.input-keyword');
-    const movies = await getMovies(inputKeyword.value);
-    updateUI(movies);
-});
-
-// event binding
-document.addEventListener('click', async function(e) {
-    if(e.target.classList.contains('modal-detail-button')) {
-        const imdbid = e.target.dataset.imdbid;
-        const movieDetail = await getMovieDetail(imdbid);
-        updateUIDetail(movieDetail);
+    try {
+        const inputKeyword = document.querySelector('.input-keyword');
+        const movies = await getMovies(inputKeyword.value);
+        updateUI(movies);
+    } catch (err) {
+        alert(err);
     }
 });
 
-function getMovieDetail(imdbid) {
-    return fetch('https://www.omdbapi.com/?i=' + imdbid + '&apikey=6fe68e94')
-    .then(response => response.json())
-    .then(m => m);
-}
-
-function updateUIDetail(m) {
-    const movieDetail = showMovieDeail(m);
-    const modalBody = document.querySelector('.modal-body');
-    modalBody.innerHTML = movieDetail;
-}
-
 function getMovies(keyword) {
     return fetch('https://www.omdbapi.com/?s=' + keyword + '&apikey=6fe68e94')
-    .then(response => response.json())
-    .then(response => response.Search);
+    .then(response => {
+        if(!response.ok) {
+            throw new Error(response.statusText);
+        } 
+        return response.json();
+    })
+    .then(response => {
+        if(response.Error === "Movie not found!") {
+            throw new Error('Ga ketemu filmnya!');
+        } else if(response.Error === "Incorrect IMDb ID." ){
+            throw new Error('Isi dulu woy!');
+        }
+        return response.Search;
+    });
 }
 
 function updateUI(movies) {
@@ -100,6 +95,35 @@ function updateUI(movies) {
     movieContainer.innerHTML = cards;
 }
 
+// event binding
+document.addEventListener('click', async function(e) {
+    if(e.target.classList.contains('modal-detail-button')) {
+        try {
+            const imdbid = e.target.dataset.imdbid;
+            const movieDetail = await getMovieDetail(imdbid);
+            updateUIDetail(movieDetail);
+        } catch (err) {
+            alert(err);
+        }
+    }
+});
+
+function getMovieDetail(imdbid) {
+    return fetch('https://www.omdbapi.com/?i=' + imdbid + '&apikey=6fe68e94')
+    .then(response => {
+        if(!response.ok) {
+            throw new Error(response.statusText);
+        }
+        return response.json();
+    })
+    .then(m => m);
+}
+
+function updateUIDetail(m) {
+    const movieDetail = showMovieDeail(m);
+    const modalBody = document.querySelector('.modal-body');
+    modalBody.innerHTML = movieDetail;
+}
 
 function showCards(m) {
     return `<div class="col-md-4 my-3">
